@@ -1,57 +1,69 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-import pandas as pd
 import joblib
+import numpy as np
 
+# Create FastAPI app
 app = FastAPI()
 
+# Load trained model
 model = joblib.load("models/risk_model.pkl")
 
-class LoanData(BaseModel):
 
-    Gender: int
-    Married: int
-    Dependents: int
-    Education: int
-    Self_Employed: int
-    ApplicantIncome: float
-    CoapplicantIncome: float
-    LoanAmount: float
-    Loan_Amount_Term: float
-    Credit_History: float
-    Property_Area: int
-
-
+# Home Route
 @app.get("/")
 def home():
+    return {
+        "message": "AI Loan Risk Prediction API Running"
+    }
 
-    return {"message": "Loan Risk API Running"}
 
-
+# Prediction Route
 @app.post("/predict")
-def predict(data: LoanData):
+def predict(
+    Gender: int,
+    Married: int,
+    Dependents: int,
+    Education: int,
+    Self_Employed: int,
+    ApplicantIncome: float,
+    CoapplicantIncome: float,
+    LoanAmount: float,
+    Loan_Amount_Term: float,
+    Credit_History: int,
+    Property_Area: int
+):
 
-    input_data = pd.DataFrame([{
-        "Gender": data.Gender,
-        "Married": data.Married,
-        "Dependents": data.Dependents,
-        "Education": data.Education,
-        "Self_Employed": data.Self_Employed,
-        "ApplicantIncome": data.ApplicantIncome,
-        "CoapplicantIncome": data.CoapplicantIncome,
-        "LoanAmount": data.LoanAmount,
-        "Loan_Amount_Term": data.Loan_Amount_Term,
-        "Credit_History": data.Credit_History,
-        "Property_Area": data.Property_Area
-    }])
+    # Create input array
+    data = np.array([[
+        Gender,
+        Married,
+        Dependents,
+        Education,
+        Self_Employed,
+        ApplicantIncome,
+        CoapplicantIncome,
+        LoanAmount,
+        Loan_Amount_Term,
+        Credit_History,
+        Property_Area
+    ]])
 
-    prediction = model.predict(input_data)
+    # Make prediction
+    prediction = int(model.predict(data)[0])
 
-    probability = model.predict_proba(input_data)[0][1]
+    # Prediction probability
+    probability = float(
+        model.predict_proba(data)[0][1]
+    )
 
-    result = "Approved" if prediction[0] == 1 else "Rejected"
+    # Convert prediction to text
+    if prediction == 1:
+        result = "Approved"
+    else:
+        result = "Rejected"
 
+    # Return JSON response
     return {
         "Loan Prediction": result,
-        "Approval Probability": round(probability * 100, 2)
+        "Probability": round(probability * 100, 2)
     }

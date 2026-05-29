@@ -1,80 +1,108 @@
 import streamlit as st
 import requests
-import plotly.express as px
 import pandas as pd
-st.set_page_config(page_title="AI Loan Risk Prediction", layout="wide")
+import plotly.express as px
 
+# Page Title
 st.title("🏦 AI Loan Risk Prediction System")
 
-st.markdown("### Fintech AI Application using XGBoost + FastAPI + Streamlit")
+st.write("Enter Applicant Details")
 
-# Create 2 columns
-col1, col2 = st.columns(2)
+# Input Fields
+Gender = st.selectbox("Gender", [0, 1])
 
-# Left Column
-with col1:
+Married = st.selectbox("Married", [0, 1])
 
-    gender = st.selectbox("Gender", [0, 1])
+Dependents = st.selectbox("Dependents", [0, 1, 2, 3])
 
-    married = st.selectbox("Married", [0, 1])
+Education = st.selectbox("Education", [0, 1])
 
-    dependents = st.selectbox("Dependents", [0, 1, 2, 3])
+Self_Employed = st.selectbox("Self Employed", [0, 1])
 
-    education = st.selectbox("Education", [0, 1])
+ApplicantIncome = st.number_input(
+    "Applicant Income",
+    value=5000
+)
 
-    self_employed = st.selectbox("Self Employed", [0, 1])
+CoapplicantIncome = st.number_input(
+    "Coapplicant Income",
+    value=2000
+)
 
-    income = st.number_input("Applicant Income")
+LoanAmount = st.number_input(
+    "Loan Amount",
+    value=120
+)
 
-# Right Column
-with col2:
+Loan_Amount_Term = st.number_input(
+    "Loan Amount Term",
+    value=360
+)
 
-    co_income = st.number_input("Coapplicant Income")
+Credit_History = st.selectbox(
+    "Credit History",
+    [0, 1]
+)
 
-    loan_amount = st.number_input("Loan Amount")
+Property_Area = st.selectbox(
+    "Property Area",
+    [0, 1, 2]
+)
 
-    loan_term = st.number_input("Loan Amount Term")
-
-    credit_history = st.selectbox("Credit History", [0, 1])
-
-    property_area = st.selectbox("Property Area", [0, 1, 2])
-
-# Predict Button
+# Prediction Button
 if st.button("Predict Loan Status"):
 
-    data = {
-        "Gender": gender,
-        "Married": married,
-        "Dependents": dependents,
-        "Education": education,
-        "Self_Employed": self_employed,
-        "ApplicantIncome": income,
-        "CoapplicantIncome": co_income,
-        "LoanAmount": loan_amount,
-        "Loan_Amount_Term": loan_term,
-        "Credit_History": credit_history,
-        "Property_Area": property_area
-    }
+    try:
 
-    response = requests.post(
-        "http://127.0.0.1:8000/predict",
-        json=data
-    )
+        # Send Request To Backend
+        response = requests.post(
+            "http://127.0.0.1:8000/predict",
+            params={
+                "Gender": Gender,
+                "Married": Married,
+                "Dependents": Dependents,
+                "Education": Education,
+                "Self_Employed": Self_Employed,
+                "ApplicantIncome": ApplicantIncome,
+                "CoapplicantIncome": CoapplicantIncome,
+                "LoanAmount": LoanAmount,
+                "Loan_Amount_Term": Loan_Amount_Term,
+                "Credit_History": Credit_History,
+                "Property_Area": Property_Area
+            }
+        )
 
-    result = response.json()
+        # Convert Response To JSON
+        result = response.json()
 
-    prediction = result["Loan Prediction"]
 
-    if prediction == "Approved":
-        st.success(f"✅ Loan Status: {prediction}")
-    else:
-        st.error(f"❌ Loan Status: {prediction}")
+        # Get Prediction
+        prediction = result.get(
+            "Loan Prediction",
+            "No Prediction Returned"
+        )
 
-    if "Approval Probability" in result:
-        st.info(f"Approval Probability: {result['Approval Probability']}%")
-        st.markdown("---")
+        # Get Probability
+        probability = result.get(
+            "Probability",
+            0
+        )
 
-st.subheader("📊 Loan Risk Analytics")
+        # Show Output
+        st.success(f"Loan Status: {prediction}")
+
+        st.info(
+            f"Approval Probability: {probability}%"
+        )
+
+    except Exception as e:
+
+        st.error(f"Error: {e}")
+
+# Analytics Section
+st.markdown("---")
+
+st.subheader("📊 Loan Analytics Dashboard")
 
 chart_data = pd.DataFrame({
     "Category": ["Approved", "Rejected"],
